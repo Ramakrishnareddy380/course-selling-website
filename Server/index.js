@@ -37,7 +37,7 @@ const Course = mongoose.model("Course", courseSchema);
 
 mongoose
   .connect(
-    "mongodb+srv://noumaanahamed:wasdijkl14145@course-selling-app.hpfwzko.mongodb.net/",
+    "",
     {
       dbName: "Sell-Courses",
       useNewUrlParser: true,
