@@ -223,8 +223,8 @@ app.get("/users/purchasedCourses", isAuthenticated, async (req, res) => {
   res.json({ purchasedCourses: user.purchasedCourses });
 });
 
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
+
 module.exports = app;
-// Server Start
-// app.listen(PORT, () => {
-//   console.log(`🚀 Server running on port ${PORT}`);
-// });
