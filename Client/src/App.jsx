@@ -19,7 +19,7 @@ function App() {
     const token = localStorage.getItem("token");
 
     function checkLoginStatus() {
-      fetch("http://localhost:3000/profile", {
+      fetch("https://course-selling-website-psi.vercel.app/", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
