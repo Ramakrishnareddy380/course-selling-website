@@ -22,7 +22,7 @@ export default function MenuAppBar({ isLoggedIn, setIsLoggedIn }) {
 
   React.useEffect(() => {
     if (isLoggedIn) {
-      fetch("http://localhost:3000/me", {
+      fetch("https://course-selling-website-psi.vercel.app/me", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

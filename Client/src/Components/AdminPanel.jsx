@@ -42,7 +42,7 @@ export default function Album() {
   };
 
   const fetchCourses = () => {
-    fetch("http://localhost:3000/admin/courses", {
+    fetch("https://course-selling-website-psi.vercel.app/admin/courses", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -85,7 +85,7 @@ export default function Album() {
   }
 
   function handleFormSubmit() {
-    fetch(`http://localhost:3000/admin/courses/${selectedCard._id}`, {
+    fetch(`https://course-selling-website-psi.vercel.app/admin/courses/${selectedCard._id}`, {
       method: "PUT",
       headers: {
         "COntent-Type": "application/json",
@@ -117,7 +117,7 @@ export default function Album() {
   }
 
   function handleAddCourse() {
-    fetch("http://localhost:3000/admin/courses", {
+    fetch("https://course-selling-website-psi.vercel.app/admin/courses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -138,7 +138,7 @@ export default function Album() {
 
   function deleteCourse(id) {
     // console.log(id);
-    fetch(`http://localhost:3000/admin/courses/${id}`, {
+    fetch(`https://course-selling-website-psi.vercel.app/admin/courses/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

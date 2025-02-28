@@ -50,7 +50,7 @@ export default function SignUp({ role, setIsLoggedIn }) {
     }
     // return role === "Admin" ? console.log("hi") : console.log("hello");
     if (role === "Admin") {
-      fetch("http://localhost:3000/admin/signup", {
+      fetch("https://course-selling-website-psi.vercel.app/admin/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +74,7 @@ export default function SignUp({ role, setIsLoggedIn }) {
           navigate("/admin");
         });
     } else {
-      fetch("http://localhost:3000/users/signup", {
+      fetch("https://course-selling-website-psi.vercel.app/users/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -48,7 +48,7 @@ export default function SignIn({ role, setIsLoggedIn }) {
       return;
     }
     if (role === "Admin") {
-      fetch("http://localhost:3000/admin/login", {
+      fetch("https://course-selling-website-psi.vercel.app/admin/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export default function SignIn({ role, setIsLoggedIn }) {
           navigate("/admin");
         });
     } else {
-      fetch("http://localhost:3000/users/login", {
+      fetch("https://course-selling-website-psi.vercel.app/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

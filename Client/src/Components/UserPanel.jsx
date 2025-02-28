@@ -45,7 +45,7 @@ export default function UserAlbum() {
   };
 
   const fetchCourses = () => {
-    fetch("http://localhost:3000/users/courses", {
+    fetch("https://course-selling-website-psi.vercel.app/users/courses", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -59,7 +59,7 @@ export default function UserAlbum() {
   };
 
   const fetchPurchasedCourses = () => {
-    fetch("http://localhost:3000/users/purchasedCourses", {
+    fetch("https://course-selling-website-psi.vercel.app/users/purchasedCourses", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -89,7 +89,7 @@ export default function UserAlbum() {
   }
 
   function purchaseCourse(id) {
-    fetch(`http://localhost:3000/users/courses/${id}`, {
+    fetch(`https://course-selling-website-psi.vercel.app/users/courses/${id}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -127,7 +127,7 @@ export default function UserAlbum() {
   }
 
   function handleFormSubmit() {
-    fetch(`http://localhost:3000/admin/courses/${selectedCard.id}`, {
+    fetch(`https://course-selling-website-psi.vercel.app/admin/courses/${selectedCard.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -161,7 +161,7 @@ export default function UserAlbum() {
   }
 
   function handleAddCourse() {
-    fetch("http://localhost:3000/admin/courses", {
+    fetch("https://course-selling-website-psi.vercel.app/admin/courses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
