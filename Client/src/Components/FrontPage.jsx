@@ -14,10 +14,10 @@ const FrontPage = () => {
           textAlign={"center"}
           variant="h1"
         >
-          Welcome to Sell-Course
+          Welcome to Amazon Sell-Course
         </Typography>
         <Typography m={5} textAlign={"center"} variant="h4">
-          Your One Stop Place for Premium-Curated Courses
+           AMAZON WEBSITE FOR SELLING COURSES
         </Typography>
         <div
           style={{

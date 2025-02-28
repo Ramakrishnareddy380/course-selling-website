@@ -21,7 +21,7 @@ const HomePage = ({ isLoggedIn }) => {
             textAlign={"center"}
             variant="h1"
           >
-            Welcome to Sell-Course
+            Amazon Course selling website
           </Typography>
           <Typography m={5} textAlign={"center"} variant="h4">
             Your One Stop Place for Premium-Curated Courses

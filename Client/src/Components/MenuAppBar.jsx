@@ -106,13 +106,13 @@ export default function MenuAppBar({ isLoggedIn, setIsLoggedIn }) {
                 variant="contained"
                 style={{ margin: 10 }}
               >
-                Teacher Login
+                Admin Login
               </Button>
               <Button
                 onClick={() => navigate("/users/login")}
                 variant="contained"
               >
-                Student Login
+                User Login
               </Button>
             </div>
           )}
