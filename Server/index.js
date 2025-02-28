@@ -1,4 +1,4 @@
-
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
@@ -6,8 +6,37 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 const mongoose = require("mongoose");
 
+// Environment Variables
+const PORT = process.env.PORT || 3000;
+const MONGODB_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.DB_NAME;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!MONGODB_URI || !JWT_SECRET) {
+  console.error("Error: Missing environment variables.");
+  process.exit(1);
+}
+
+// Initialize Express App
+const app = express();
+app.use(bodyParser.json());
+app.use(cors());
+
+// Database Connection
+mongoose
+  .connect(MONGODB_URI, {
+    dbName: DB_NAME,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("✅ Database Connected Successfully"))
+  .catch((err) => {
+    console.error("❌ Database Connection Error:", err);
+    process.exit(1);
+  });
+
+// Mongoose Schemas & Models
 const Schema = mongoose.Schema;
-// const ObjectId = Schema.ObjectId;
 
 const adminSchema = new Schema({
   username: String,
@@ -25,394 +54,176 @@ const courseSchema = new Schema({
   description: String,
   price: Number,
   imageLink: String,
-  published: {
-    type: Boolean,
-    default: true,
-  },
+  published: { type: Boolean, default: true },
   createdBy: { type: Schema.Types.ObjectId, ref: "Admin" },
 });
 
-const User = mongoose.model("User", userSchema);
 const Admin = mongoose.model("Admin", adminSchema);
+const User = mongoose.model("User", userSchema);
 const Course = mongoose.model("Course", courseSchema);
 
-mongoose
-  .connect(
-    "mongodb+srv://rk:QgFWQk1HoLeytzro@cluster3333.jmei1.mongodb.net/",
-    {
-      dbName: "Sell-Courses",
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    }
-  )
-  .then(() => {
-    console.log("Database Connected");
-  });
-
-const app = express();
-
-app.use(cors());
-app.use(bodyParser.json());
-
-const secretOrPrivateKey = "SECRET";
-
+// Middleware for Authentication
 function isAuthenticated(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-    return res.status(401).send({ message: "Missing Auth Header" });
+    return res.status(401).json({ message: "Missing Authorization Header" });
   }
+  
   const token = authHeader.split(" ")[1];
-
-  jwt.verify(token, secretOrPrivateKey, (err, data) => {
+  
+  jwt.verify(token, JWT_SECRET, (err, data) => {
     if (err) {
-      return res.status(404).send({ message: "Unauthorized" });
+      return res.status(403).json({ message: "Unauthorized Access" });
     }
-    req.data = data;
+    req.user = data;
     next();
   });
 }
 
 function isAdmin(req, res, next) {
-  if (!(req.data.role === "Admin")) {
-    return res.status(404).send({ message: "Admins Only Allowed" });
+  if (req.user.role !== "Admin") {
+    return res.status(403).json({ message: "Admins Only Allowed" });
   }
   next();
 }
 
-//! Admin Routes
-
-//*Sign Up
+// Admin Routes
 app.post("/admin/signup", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .send({ message: "Username and password are required." });
+    return res.status(400).json({ message: "Username and password required." });
   }
 
   let admin = await Admin.findOne({ username });
-
   if (admin) {
-    return res
-      .status(409)
-      .send({ message: "User already exists, Please login" });
+    return res.status(409).json({ message: "Admin already exists." });
   }
 
-  admin = await Admin.create({ username, password });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  admin = await Admin.create({ username, password: hashedPassword });
 
-  const token = jwt.sign({ username, role: "Admin" }, secretOrPrivateKey, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign({ username, role: "Admin" }, JWT_SECRET, { expiresIn: "1h" });
 
-  res.send({ message: "Admin created successfully", token });
+  res.json({ message: "Admin created successfully", token });
 });
 
-//*Sign In
 app.post("/admin/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .send({ message: "Username and password are required." });
+    return res.status(400).json({ message: "Username and password required." });
   }
 
-  let admin = await Admin.findOne({ username, password });
-
-  if (!admin) {
-    return res.status(401).send({ message: "Incorrect username or password" });
+  let admin = await Admin.findOne({ username });
+  if (!admin || !(await bcrypt.compare(password, admin.password))) {
+    return res.status(401).json({ message: "Invalid credentials." });
   }
 
-  const token = jwt.sign({ username, role: "Admin" }, secretOrPrivateKey, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign({ username, role: "Admin" }, JWT_SECRET, { expiresIn: "1h" });
 
-  res.send({ message: "Admin Loggedin successfully", token });
+  res.json({ message: "Admin logged in successfully", token });
 });
 
-//*View Courses
-app.get("/admin/courses", isAuthenticated, isAdmin, async (req, res) => {
-  let Courses = await Course.find({}).populate("createdBy");
-
-  res.send({ Courses });
-});
-
-//*Create Courses
 app.post("/admin/courses", isAuthenticated, isAdmin, async (req, res) => {
-  //Todo: Get Course Details
-
-  const { title, description, imageLink, price, published } = req.body;
-
-  //? Course Details Shouldn't be Empty
+  const { title, description, imageLink, price } = req.body;
 
   if (!title || !description || !imageLink || !price) {
-    return res.status(400).send({ message: "Course details missing" });
+    return res.status(400).json({ message: "Incomplete course details." });
   }
 
-  //? Course Shouldn't Already Exist
-
-  let course = await Course.findOne({ title });
-
-  if (course) {
-    return res.status(409).send({ message: "Course already exists," });
-  }
-
-  //Todo: Store the Course Details
-
-  const createdBy = req.data.username; // Get the username of the admin creating the course
-  const admin = await Admin.findOne({ username: createdBy });
-
+  const admin = await Admin.findOne({ username: req.user.username });
   if (!admin) {
-    return res.status(404).send({ message: "Course Creator not found" });
+    return res.status(404).json({ message: "Admin not found." });
   }
 
-  course = await Course.create({
+  const course = await Course.create({
     ...req.body,
     createdBy: admin._id,
   });
 
-  //Todo: Course Created Successfully
-
-  res.send({ message: "Course Created Successfully" });
+  res.json({ message: "Course created successfully", course });
 });
 
-//*Delete Courses
-app.delete("/admin/courses/:id", isAuthenticated, isAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  //? Check whether Course Exists
-
-  let validId = mongoose.Types.ObjectId.isValid(id);
-
-  if (!validId) {
-    return res.status(404).send({ message: "Invalid Course ID" });
-  }
-
-  let course = await Course.findById(id);
-
-  if (!course) {
-    return res.status(404).send({ message: "Course doesn't exists" });
-  }
-  //Todo: Delete the course
-
-  course = await Course.findByIdAndDelete(id, {
-    new: true,
-  });
-
-  if (!course) {
-    return res.status(404).send({ message: "Course not found" });
-  }
-  //Todo: Deleted Successfully
-
-  res.send({ message: "Course Deleted Successfully" });
-});
-
-//*Update Courses
-app.put("/admin/courses/:id", isAuthenticated, isAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  //? Check whether Course Exists
-
-  let validId = mongoose.Types.ObjectId.isValid(id);
-
-  if (!validId) {
-    return res.status(404).send({ message: "Invalid Course ID" });
-  }
-
-  const { title, description, imageLink, price, published } = req.body;
-
-  if (!title || !description || !imageLink || !price) {
-    return res.status(400).send({ message: "Course details missing" });
-  }
-
-  let course = await Course.findById(id);
-
-  if (!course) {
-    return res.status(404).send({ message: "Course doesn't exists" });
-  }
-
-  course = await Course.findByIdAndUpdate(id, req.body, {
-    new: true,
-  });
-
-  if (!course) {
-    return res.status(404).send({ message: "Course not found" });
-  }
-
-  res.send({ message: "Course Updated Successfully" });
-});
-
-//*View a Course
-app.get("/admin/courses/:id", isAuthenticated, isAdmin, async (req, res) => {
-  const { id } = req.params;
-
-  let validId = mongoose.Types.ObjectId.isValid(id);
-
-  if (!validId) {
-    return res.status(404).send({ message: "Invalid Course ID" });
-  }
-
-  let course = await Course.findById(id).populate("createdBy");
-
-  if (!course) {
-    return res.status(404).send({ message: "Course doesn't exists" });
-  }
-
-  res.send({ currentCourse: course });
-});
-
-//! User Routes
-
-//*Sign Up
+// User Routes
 app.post("/users/signup", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .send({ message: "Username and password are required." });
+    return res.status(400).json({ message: "Username and password required." });
   }
 
   let user = await User.findOne({ username });
-
   if (user) {
-    return res
-      .status(409)
-      .send({ message: "User already exists, Please login" });
+    return res.status(409).json({ message: "User already exists." });
   }
 
-  user = await User.create({ username, password });
+  const hashedPassword = await bcrypt.hash(password, 10);
+  user = await User.create({ username, password: hashedPassword });
 
-  const token = jwt.sign({ username, role: "User" }, secretOrPrivateKey, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign({ username, role: "User" }, JWT_SECRET, { expiresIn: "1h" });
 
-  res.send({ message: "user created successfully", token });
+  res.json({ message: "User created successfully", token });
 });
 
-//*Sign In
 app.post("/users/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
-    return res
-      .status(400)
-      .send({ message: "Username and password are required." });
+    return res.status(400).json({ message: "Username and password required." });
   }
 
-  let user = await User.findOne({ username, password });
-
-  if (!user) {
-    return res.status(401).send({ message: "Incorrect username or password" });
+  let user = await User.findOne({ username });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: "Invalid credentials." });
   }
 
-  const token = jwt.sign({ username, role: "User" }, secretOrPrivateKey, {
-    expiresIn: "1h",
-  });
+  const token = jwt.sign({ username, role: "User" }, JWT_SECRET, { expiresIn: "1h" });
 
-  res.send({ message: "User Loggedin successfully", token });
+  res.json({ message: "User logged in successfully", token });
 });
 
-//*View Courses
 app.get("/users/courses", isAuthenticated, async (req, res) => {
-  let Courses = await Course.find({ published: true }).populate("createdBy");
-
-  res.send({ Courses });
+  const courses = await Course.find({ published: true }).populate("createdBy");
+  res.json({ courses });
 });
 
-//*View a Course
-app.get("/users/courses/:id", isAuthenticated, async (req, res) => {
-  //! Bug: View Course where Purchased is TRue
-
-  const { id } = req.params;
-
-  let validId = mongoose.Types.ObjectId.isValid(id);
-
-  if (!validId) {
-    return res.status(404).send({ message: "Invalid Course ID" });
-  }
-
-  let course = await Course.findById(id);
-
-  if (!course) {
-    return res.status(404).send({ message: "Course doesn't exists" });
-  }
-
-  res.send({ currentCourse: course });
-});
-
-//*Purchase Courses
 app.post("/users/courses/:id", isAuthenticated, async (req, res) => {
   const { id } = req.params;
 
-  let validId = mongoose.Types.ObjectId.isValid(id);
-
-  if (!validId) {
-    return res.status(404).send({ message: "Invalid Course ID" });
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid Course ID." });
   }
 
-  let course = await Course.findById(id);
-
+  const course = await Course.findById(id);
   if (!course) {
-    return res.status(404).send({ message: "Course doesn't exists" });
+    return res.status(404).json({ message: "Course not found." });
   }
 
-  const { username } = req.data;
-
-  //?Find User Index and Whether User exists
-
-  let user = await User.findOne({ username });
-
+  const user = await User.findOne({ username: req.user.username });
   if (!user) {
-    return res.status(404).send({ message: "User not found" });
+    return res.status(404).json({ message: "User not found." });
   }
 
-  const isPurchased = user.purchasedCourses.find((course) => {
-    return String(course) === id;
-  });
-
-  if (isPurchased) {
-    return res.status(409).send({ message: "Course already purchased," });
+  if (user.purchasedCourses.includes(id)) {
+    return res.status(409).json({ message: "Course already purchased." });
   }
 
   user.purchasedCourses.push(course);
   await user.save();
 
-  res.send({ message: "Course Purchased Successfully" });
+  res.json({ message: "Course purchased successfully." });
 });
 
-//*View Purchased Courses
 app.get("/users/purchasedCourses", isAuthenticated, async (req, res) => {
-  //?Find User Index and Whether User exists
-
-  const { username } = req.data;
-
-  let user = await User.findOne({ username }).populate("purchasedCourses");
-
+  const user = await User.findOne({ username: req.user.username }).populate("purchasedCourses");
   if (!user) {
-    return res.status(404).send({ message: "User not found" });
+    return res.status(404).json({ message: "User not found." });
   }
-
-  res.send({ purchasedCourses: user.purchasedCourses || [] });
+  res.json({ purchasedCourses: user.purchasedCourses });
 });
 
-// app.get("/admin/me", isAuthenticated, isAdmin, (req, res) => {
-//   res.send({ username: req.data.username });
-// });
-
-app.get("/me", isAuthenticated, (req, res) => {
-  res.send({ username: req.data.username });
-});
-
-app.get("/", (req, res) => {
-  res.send("Hello");
-});
-
-app.get("/profile", isAuthenticated, (req, res) => {
-  res.sendStatus(200);
-});
-
-app.listen(3000, () => {
-  console.log("Listening....");
+// Server Start
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
